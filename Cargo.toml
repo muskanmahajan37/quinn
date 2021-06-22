@@ -7,3 +7,9 @@ debug = true
 
 [profile.release]
 debug = true
+
+[patch."crates-io"]
+rustls = { git = "https://github.com/djc/rustls", rev = "fd7fd62a031c6ba163d8fd4fe84b9678dcd68481", features = ["quic"] }
+
+[patch."https://github.com/ctz/rustls"]
+rustls = { git = "https://github.com/djc/rustls", rev = "fd7fd62a031c6ba163d8fd4fe84b9678dcd68481" }

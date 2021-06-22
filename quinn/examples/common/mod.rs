@@ -46,8 +46,8 @@ pub fn make_server_endpoint(bind_addr: SocketAddr) -> Result<(Incoming, Vec<u8>)
 /// - server_certs: a list of trusted certificates in DER format.
 fn configure_client(server_certs: &[&[u8]]) -> Result<ClientConfig, Box<dyn Error>> {
     let certs = server_certs
-        .into_iter()
-        .map(|der| Certificate::from_der(der))
+        .iter()
+        .map(|&der| Certificate::from_der(der))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(ClientConfig::with_root_certificates(certs, None)?)
 }

@@ -519,14 +519,14 @@ impl ServerConfig<crypto::rustls::TlsSession> {
     pub fn with_single_cert(
         cert_chain: CertificateChain,
         key: PrivateKey,
-    ) -> Result<Self, rustls::TLSError> {
-        let mut crypto = rustls::ServerConfig::with_ciphersuites(
-            rustls::NoClientAuth::new(),
-            &crypto::rustls::QUIC_CIPHER_SUITES,
-        );
-
-        crypto.versions = vec![rustls::ProtocolVersion::TLSv1_3];
-        crypto.set_single_cert(cert_chain.certs, key.inner)?;
+    ) -> Result<Self, rustls::Error> {
+        let mut crypto = rustls::ServerConfig::builder()
+            .with_cipher_suites(&crypto::rustls::QUIC_CIPHER_SUITES)
+            .with_safe_default_kx_groups()
+            .with_protocol_versions(&[&rustls::version::TLS13])
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(cert_chain.certs, key.inner)?;
         crypto.max_early_data_size = u32::max_value();
 
         Ok(Self::with_crypto(Arc::new(crypto)))
@@ -639,18 +639,21 @@ impl ClientConfig<crypto::rustls::TlsSession> {
         roots: rustls::RootCertStore,
         #[allow(unused_mut)] mut ct_logs: Option<&'static [&'static sct::Log]>,
     ) -> Self {
-        let mut cfg = rustls::ClientConfig::with_ciphersuites(&crypto::rustls::QUIC_CIPHER_SUITES);
-        cfg.versions = vec![rustls::ProtocolVersion::TLSv1_3];
-        cfg.enable_early_data = true;
-        cfg.root_store = roots;
-
         #[cfg(feature = "certificate-transparency")]
         {
             if ct_logs.is_none() {
-                ct_logs = Some(&ct_logs::LOGS);
+                ct_logs = Some(ct_logs::LOGS);
             }
         }
-        cfg.ct_logs = ct_logs;
+
+        let mut cfg = rustls::ClientConfig::builder()
+            .with_cipher_suites(&crypto::rustls::QUIC_CIPHER_SUITES)
+            .with_safe_default_kx_groups()
+            .with_protocol_versions(&[&rustls::version::TLS13])
+            .unwrap()
+            .with_root_certificates(roots, ct_logs.unwrap_or(&[]))
+            .with_no_client_auth();
+        cfg.enable_early_data = true;
 
         Self {
             transport: Arc::new(TransportConfig::default()),

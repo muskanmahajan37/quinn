@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
     server_config.use_stateless_retry(true);
     let retry = server(server_config.clone(), SocketAddr::new(opt.listen, 4434));
 
-    tokio::try_join!(main, default, retry, h2_server(server_config.clone()))?;
+    tokio::try_join!(main, default, retry, h2_server(server_config))?;
 
     Ok(())
 }
@@ -282,7 +282,7 @@ async fn h2_handle(request: hyper::Request<hyper::Body>) -> Result<hyper::Respon
 
 async fn h2_server(server_config: quinn::ServerConfig) -> Result<()> {
     let mut tls_cfg = (*server_config.crypto).clone();
-    tls_cfg.set_protocols(&[b"h2".to_vec(), b"http/1.1".to_vec()]);
+    tls_cfg.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
     let tls_acceptor = TlsAcceptor::from(sync::Arc::new(tls_cfg));
 
     let tcp = TcpListener::bind(&SocketAddr::new([0, 0, 0, 0].into(), 443)).await?;

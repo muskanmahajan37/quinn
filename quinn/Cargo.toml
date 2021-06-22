@@ -35,12 +35,12 @@ fxhash = "0.2.1"
 libc = "0.2.69"
 mio = { version = "0.7.7", features = ["net"] }
 proto = { package = "quinn-proto", path = "../quinn-proto", version = "0.7" }
-rustls = { version = "0.19", features = ["quic"], optional = true }
+rustls = { version = "0.20.0-beta2", git = "https://github.com/djc/rustls", rev = "fd7fd62a031c6ba163d8fd4fe84b9678dcd68481", features = ["quic"], optional = true }
 socket2 = "0.4"
 thiserror = "1.0.21"
 tracing = "0.1.10"
 tokio = { version = "1.0.1", features = ["net", "rt", "time"] }
-webpki = { version = "0.21", optional = true }
+webpki = { version = "0.22", optional = true }
 
 [target.'cfg(unix)'.dependencies]
 lazy_static = "1"
