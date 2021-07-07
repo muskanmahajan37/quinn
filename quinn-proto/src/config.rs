@@ -521,7 +521,7 @@ impl ServerConfig<crypto::rustls::TlsSession> {
         key: PrivateKey,
     ) -> Result<Self, rustls::Error> {
         let mut crypto = rustls::ServerConfig::builder()
-            .with_cipher_suites(&crypto::rustls::QUIC_CIPHER_SUITES)
+            .with_safe_default_cipher_suites()
             .with_safe_default_kx_groups()
             .with_protocol_versions(&[&rustls::version::TLS13])
             .unwrap()
@@ -647,7 +647,7 @@ impl ClientConfig<crypto::rustls::TlsSession> {
         }
 
         let mut cfg = rustls::ClientConfig::builder()
-            .with_cipher_suites(&crypto::rustls::QUIC_CIPHER_SUITES)
+            .with_safe_default_cipher_suites()
             .with_safe_default_kx_groups()
             .with_protocol_versions(&[&rustls::version::TLS13])
             .unwrap()
