@@ -130,7 +130,7 @@ impl Pair {
 
     pub fn connect(&mut self) -> (ConnectionHandle, ConnectionHandle) {
         info!("connecting");
-        let client_ch = self.begin_connect(client_config());
+        let client_ch = self.begin_connect(client_config(None));
         self.drive();
         let server_ch = self.server.assert_accept();
         assert_matches!(
@@ -392,21 +392,16 @@ pub fn server_config() -> ServerConfig {
     }
 }
 
-pub fn client_config() -> ClientConfig {
-    let cert = CERTIFICATE.serialize_der().unwrap();
-    let anchor = webpki::trust_anchor_util::cert_der_as_trust_anchor(&cert).unwrap();
-    let anchor_vec = vec![anchor];
+pub fn client_config(certs: Option<Vec<Certificate>>) -> ClientConfig {
+    let certs = match certs {
+        Some(certs) => certs,
+        None => vec![Certificate::from_der(&CERTIFICATE.serialize_der().unwrap()).unwrap()],
+    };
 
-    let mut crypto = crypto::ClientConfig::new();
-    Arc::make_mut(&mut crypto)
-        .root_store
-        .add_server_trust_anchors(&webpki::TLSServerTrustAnchors(&anchor_vec));
-    Arc::make_mut(&mut crypto).key_log = Arc::new(KeyLogFile::new());
-    Arc::make_mut(&mut crypto).enable_early_data = true;
-    ClientConfig {
-        transport: Default::default(),
-        crypto,
-    }
+    let mut config = ClientConfig::with_root_certificates(certs, None).unwrap();
+    Arc::make_mut(&mut config.crypto).key_log = Arc::new(KeyLogFile::new());
+    Arc::make_mut(&mut config.crypto).enable_early_data = true;
+    config
 }
 
 pub fn min_opt<T: Ord>(x: Option<T>, y: Option<T>) -> Option<T> {

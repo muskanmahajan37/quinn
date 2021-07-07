@@ -1,6 +1,5 @@
 use std::{io, net::SocketAddr, sync::Arc};
 
-use once_cell::sync::OnceCell;
 use proto::{
     generic::{ClientConfig, EndpointConfig, ServerConfig},
     ConnectionIdGenerator,
@@ -13,7 +12,7 @@ use crate::{
     platform::UdpSocket,
 };
 #[cfg(feature = "rustls")]
-use crate::{Certificate, CertificateChain, PrivateKey};
+use crate::{CertificateChain, PrivateKey};
 
 /// A helper for constructing an [`Endpoint`].
 ///
@@ -36,12 +35,12 @@ impl<S> EndpointBuilder<S>
 where
     S: proto::crypto::Session + Send + 'static,
 {
-    /// Start a builder with a specific initial low-level configuration.
-    pub fn new(config: EndpointConfig<S>, default_client_config: ClientConfig<S>) -> Self {
+    /// Start a builder with a specific initial low-level configuration
+    pub fn new(config: EndpointConfig<S>, default_client_config: Option<ClientConfig<S>>) -> Self {
         Self {
             server_config: None,
             config,
-            default_client_config: Some(default_client_config),
+            default_client_config,
         }
     }
 
@@ -83,12 +82,7 @@ where
         Ok((
             Endpoint {
                 inner: rc.clone(),
-                // If a default client config hasn't been specified explicitly, leave the OnceCell
-                // empty so `Endpoint` can initialize it iff needed.
-                default_client_config: self
-                    .default_client_config
-                    .map(OnceCell::from)
-                    .unwrap_or_default(),
+                default_client_config: self.default_client_config,
             },
             Incoming::new(rc),
         ))
@@ -281,21 +275,6 @@ where
 
 #[cfg(feature = "rustls")]
 impl ClientConfigBuilder<proto::crypto::rustls::TlsSession> {
-    /// Add a trusted certificate authority.
-    ///
-    /// For more advanced/less secure certificate verification, construct a [`ClientConfig`]
-    /// manually and use rustls's `dangerous_configuration` feature to override the certificate
-    /// verifier.
-    ///
-    /// [`ClientConfig`]: crate::generic::ClientConfig
-    pub fn add_certificate_authority(
-        &mut self,
-        cert: Certificate,
-    ) -> Result<&mut Self, webpki::Error> {
-        self.config.add_certificate_authority(cert)?;
-        Ok(self)
-    }
-
     /// Enable NSS-compatible cryptographic key logging to the `SSLKEYLOGFILE` environment variable.
     ///
     /// Useful for debugging encrypted communications with protocol analyzers such as Wireshark.
@@ -332,14 +311,5 @@ where
         Self {
             config: self.config.clone(),
         }
-    }
-}
-
-impl<S> Default for ClientConfigBuilder<S>
-where
-    S: proto::crypto::Session,
-{
-    fn default() -> Self {
-        Self::new(ClientConfig::default())
     }
 }
