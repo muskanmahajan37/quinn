@@ -207,7 +207,7 @@ impl Pair {
 
 impl Default for Pair {
     fn default() -> Self {
-        Pair::new(Default::default(), server_config())
+        Pair::new(Default::default(), server_config(None))
     }
 }
 
@@ -375,21 +375,17 @@ impl Write for TestWriter {
     }
 }
 
-pub fn server_config() -> ServerConfig {
-    let key = CERTIFICATE.serialize_private_key_der();
-    let cert = CERTIFICATE.serialize_pem().unwrap();
+pub fn server_config(cert_and_key: Option<(Certificate, PrivateKey)>) -> ServerConfig {
+    let (cert, key) = match cert_and_key {
+        Some((cert, key)) => (cert, key),
+        None => (
+            Certificate::from_der(&CERTIFICATE.serialize_der().unwrap()).unwrap(),
+            PrivateKey::from_der(&CERTIFICATE.serialize_private_key_der()).unwrap(),
+        ),
+    };
 
-    let mut crypto = crypto::ServerConfig::new();
-    Arc::make_mut(&mut crypto)
-        .set_single_cert(
-            rustls::internal::pemfile::certs(&mut cert.as_bytes()).unwrap(),
-            rustls::PrivateKey(key.to_vec()),
-        )
-        .unwrap();
-    ServerConfig {
-        crypto,
-        ..Default::default()
-    }
+    let cert_chain = CertificateChain::from_certs(vec![cert]);
+    ServerConfig::with_single_cert(cert_chain, key).unwrap()
 }
 
 pub fn client_config(certs: Option<Vec<Certificate>>) -> ClientConfig {

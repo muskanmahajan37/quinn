@@ -16,7 +16,7 @@ use tracing::info;
 use super::*;
 use crate::cid_generator::{ConnectionIdGenerator, RandomConnectionIdGenerator};
 use crate::crypto::Session as _;
-use crate::{Certificate, CertificateChain, PrivateKey};
+use crate::{Certificate, PrivateKey};
 mod util;
 use util::*;
 
@@ -24,7 +24,7 @@ use util::*;
 fn version_negotiate_server() {
     let _guard = subscribe();
     let client_addr = "[::2]:7890".parse().unwrap();
-    let mut server = Endpoint::new(Default::default(), Some(Arc::new(server_config())));
+    let mut server = Endpoint::new(Default::default(), Some(Arc::new(server_config(None))));
     let now = Instant::now();
     let event = server.handle(
         now,
@@ -123,7 +123,7 @@ fn stateless_retry() {
         Default::default(),
         ServerConfig {
             use_stateless_retry: true,
-            ..server_config()
+            ..server_config(None)
         },
     );
     pair.connect();
@@ -139,9 +139,9 @@ fn server_stateless_reset() {
 
     let endpoint_config = Arc::new(EndpointConfig::new(reset_key));
 
-    let mut pair = Pair::new(endpoint_config.clone(), server_config());
+    let mut pair = Pair::new(endpoint_config.clone(), server_config(None));
     let (client_ch, _) = pair.connect();
-    pair.server.endpoint = Endpoint::new(endpoint_config, Some(Arc::new(server_config())));
+    pair.server.endpoint = Endpoint::new(endpoint_config, Some(Arc::new(server_config(None))));
     // Send something big enough to allow room for a smaller stateless reset.
     pair.client.connections.get_mut(&client_ch).unwrap().close(
         pair.time,
@@ -168,9 +168,9 @@ fn client_stateless_reset() {
 
     let endpoint_config = Arc::new(EndpointConfig::new(reset_key));
 
-    let mut pair = Pair::new(endpoint_config.clone(), server_config());
+    let mut pair = Pair::new(endpoint_config.clone(), server_config(None));
     let (_, server_ch) = pair.connect();
-    pair.client.endpoint = Endpoint::new(endpoint_config, Some(Arc::new(server_config())));
+    pair.client.endpoint = Endpoint::new(endpoint_config, Some(Arc::new(server_config(None))));
     // Send something big enough to allow room for a smaller stateless reset.
     pair.server.connections.get_mut(&server_ch).unwrap().close(
         pair.time,
@@ -329,7 +329,7 @@ fn reject_self_signed_server_cert() {
 #[test]
 fn reject_missing_client_cert() {
     let _guard = subscribe();
-    let mut server_config = server_config();
+    let mut server_config = server_config(None);
     Arc::make_mut(&mut server_config.crypto).set_client_certificate_verifier(
         rustls::AllowAnyAuthenticatedClient::new(rustls::RootCertStore::empty()),
     );
@@ -403,7 +403,7 @@ fn zero_rtt_happypath() {
         Default::default(),
         ServerConfig {
             use_stateless_retry: true,
-            ..server_config()
+            ..server_config(None)
         },
     );
     let config = client_config(None);
@@ -446,7 +446,7 @@ fn zero_rtt_happypath() {
 #[test]
 fn zero_rtt_rejection() {
     let _guard = subscribe();
-    let mut server_config = server_config();
+    let mut server_config = server_config(None);
     Arc::get_mut(&mut server_config.crypto)
         .unwrap()
         .set_protocols(&["foo".into(), "bar".into()]);
@@ -518,7 +518,7 @@ fn zero_rtt_rejection() {
 #[test]
 fn alpn_success() {
     let _guard = subscribe();
-    let mut server_config = server_config();
+    let mut server_config = server_config(None);
     Arc::get_mut(&mut server_config.crypto)
         .unwrap()
         .set_protocols(&["foo".into(), "bar".into(), "baz".into()]);
@@ -552,7 +552,7 @@ fn alpn_success() {
 #[test]
 fn server_alpn_unset() {
     let _guard = subscribe();
-    let mut pair = Pair::new(Arc::new(EndpointConfig::default()), server_config());
+    let mut pair = Pair::new(Arc::new(EndpointConfig::default()), server_config(None));
     let mut client_config = client_config(None);
     Arc::get_mut(&mut client_config.crypto)
         .unwrap()
@@ -569,7 +569,7 @@ fn server_alpn_unset() {
 #[test]
 fn client_alpn_unset() {
     let _guard = subscribe();
-    let mut server_config = server_config();
+    let mut server_config = server_config(None);
     Arc::get_mut(&mut server_config.crypto)
         .unwrap()
         .set_protocols(&["foo".into(), "bar".into(), "baz".into()]);
@@ -585,7 +585,7 @@ fn client_alpn_unset() {
 
 #[test]
 fn alpn_mismatch() {
-    let mut server_config = server_config();
+    let mut server_config = server_config(None);
     Arc::get_mut(&mut server_config.crypto)
         .unwrap()
         .set_protocols(&["foo".into(), "bar".into(), "baz".into()]);
@@ -611,7 +611,7 @@ fn stream_id_limit() {
             max_concurrent_uni_streams: 1u32.into(),
             ..TransportConfig::default()
         }),
-        ..server_config()
+        ..server_config(None)
     };
     let mut pair = Pair::new(Default::default(), server);
     let (client_ch, server_ch) = pair.connect();
@@ -875,7 +875,7 @@ fn idle_timeout() {
             max_idle_timeout: Some(IDLE_TIMEOUT),
             ..TransportConfig::default()
         }),
-        ..server_config()
+        ..server_config(None)
     };
     let mut pair = Pair::new(Default::default(), server);
     let (client_ch, server_ch) = pair.connect();
@@ -939,7 +939,7 @@ fn concurrent_connections_full() {
         Default::default(),
         ServerConfig {
             concurrent_connections: 0,
-            ..server_config()
+            ..server_config(None)
         },
     );
     let client_ch = pair.begin_connect(client_config(None));
@@ -1008,7 +1008,7 @@ fn test_flow_control(config: TransportConfig, window_size: usize) {
         Default::default(),
         ServerConfig {
             transport: Arc::new(config),
-            ..server_config()
+            ..server_config(None)
         },
     );
     let (client_ch, server_ch) = pair.connect();
@@ -1196,7 +1196,7 @@ fn zero_length_cid() {
             connection_id_generator_factory: Arc::new(cid_generator_factory),
             ..EndpointConfig::default()
         }),
-        server_config(),
+        server_config(None),
     );
     let (client_ch, server_ch) = pair.connect();
     // Ensure we can reconnect after a previous connection is cleaned up
@@ -1225,7 +1225,7 @@ fn keep_alive() {
             max_idle_timeout: Some(IDLE_TIMEOUT),
             ..TransportConfig::default()
         }),
-        ..server_config()
+        ..server_config(None)
     };
     let mut pair = Pair::new(Default::default(), server);
     let (client_ch, server_ch) = pair.connect();
@@ -1256,7 +1256,7 @@ fn cid_rotation() {
             connection_id_generator_factory: Arc::new(cid_generator_factory),
             ..EndpointConfig::default()
         }),
-        Some(Arc::new(server_config())),
+        Some(Arc::new(server_config(None))),
     );
     let client = Endpoint::new(Arc::new(EndpointConfig::default()), None);
 
@@ -1516,7 +1516,7 @@ fn datagram_recv_buffer_overflow() {
             datagram_receive_buffer_size: Some(WINDOW),
             ..TransportConfig::default()
         }),
-        ..server_config()
+        ..server_config(None)
     };
     let mut pair = Pair::new(Default::default(), server);
     let (client_ch, server_ch) = pair.connect();
@@ -1555,7 +1555,7 @@ fn datagram_unsupported() {
             datagram_receive_buffer_size: None,
             ..TransportConfig::default()
         }),
-        ..server_config()
+        ..server_config(None)
     };
     let mut pair = Pair::new(Default::default(), server);
     let (client_ch, server_ch) = pair.connect();
@@ -1572,7 +1572,7 @@ fn datagram_unsupported() {
 #[test]
 fn large_initial() {
     let _guard = subscribe();
-    let mut server_config = server_config();
+    let mut server_config = server_config(None);
     Arc::get_mut(&mut server_config.crypto)
         .unwrap()
         .set_protocols(&[vec![0, 0, 0, 42]]);
@@ -1718,7 +1718,7 @@ fn repeated_request_response() {
             max_concurrent_bidi_streams: 1u32.into(),
             ..TransportConfig::default()
         }),
-        ..server_config()
+        ..server_config(None)
     };
     let mut pair = Pair::new(Default::default(), server);
     let (client_ch, server_ch) = pair.connect();
@@ -1764,11 +1764,7 @@ fn handshake_anti_deadlock_probe() {
     let _guard = subscribe();
 
     let (cert, key) = big_cert_and_key();
-
-    let mut server = server_config();
-    server
-        .certificate(CertificateChain::from_certs(Some(cert.clone())), key)
-        .unwrap();
+    let server = server_config(Some((cert.clone(), key)));
     let client = client_config(Some(vec![cert]));
     let mut pair = Pair::new(Default::default(), server);
 
@@ -1800,11 +1796,7 @@ fn server_can_send_3_inital_packets() {
     let _guard = subscribe();
 
     let (cert, key) = big_cert_and_key();
-
-    let mut server = server_config();
-    server
-        .certificate(CertificateChain::from_certs(Some(cert.clone())), key)
-        .unwrap();
+    let server = server_config(Some((cert.clone(), key)));
     let client = client_config(Some(vec![cert]));
     let mut pair = Pair::new(Default::default(), server);
 

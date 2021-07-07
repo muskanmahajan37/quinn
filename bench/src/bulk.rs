@@ -26,12 +26,8 @@ fn main() {
     let key = quinn::PrivateKey::from_der(&cert.serialize_private_key_der()).unwrap();
     let cert = quinn::Certificate::from_der(&cert.serialize_der().unwrap()).unwrap();
 
-    let mut server_config = quinn::ServerConfigBuilder::default();
-    server_config
-        .certificate(quinn::CertificateChain::from_certs(vec![cert.clone()]), key)
-        .unwrap();
-
-    let mut server_config = server_config.build();
+    let cert_chain = quinn::CertificateChain::from_certs(vec![cert.clone()]);
+    let mut server_config = quinn::ServerConfig::with_single_cert(cert_chain, key).unwrap();
     server_config.transport = Arc::new(transport_config(&opt));
 
     let mut endpoint = quinn::EndpointBuilder::default();
