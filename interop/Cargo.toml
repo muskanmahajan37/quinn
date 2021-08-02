@@ -18,7 +18,7 @@ hyper-rustls = { git = "https://github.com/djc/hyper-rustls", rev = "01982286851
 lazy_static = "1"
 quinn = { path = "../quinn" }
 quinn-proto = { path = "../quinn-proto" }
-rustls = { git = "https://github.com/djc/rustls", rev = "fd7fd62a031c6ba163d8fd4fe84b9678dcd68481", features = ["dangerous_configuration", "quic"] }
+rustls = { git = "https://github.com/djc/rustls", rev = "fd7fd62a031c6ba163d8fd4fe84b9678dcd68481", default-features = false, features = ["dangerous_configuration", "quic"] }
 structopt = "0.3.0"
 tokio = { version = "1.0.1", features = ["io-util", "macros", "rt", "rt-multi-thread"] }
 tokio-rustls = { version = "0.23", git = "https://github.com/tokio-rs/tls", rev = "b433932bf1025960e5b99f353cf8eee4ce2f08f3" }

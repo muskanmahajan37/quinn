@@ -34,7 +34,7 @@ ring = { version = "0.16.7", optional = true }
 # If rustls gets updated to a new version which contains
 # https://github.com/ctz/rustls/commit/7117a805e0104705da50259357d8effa7d599e37
 # the custom cipher list in `quinn-proto/src/crypto/rustls.rs` can be removed.
-rustls = { version = "0.20.0-beta2", git = "https://github.com/djc/rustls", rev = "fd7fd62a031c6ba163d8fd4fe84b9678dcd68481", features = ["quic"], optional = true }
+rustls = { version = "0.20.0-beta2", git = "https://github.com/djc/rustls", rev = "fd7fd62a031c6ba163d8fd4fe84b9678dcd68481", default-features = false, features = ["quic"], optional = true }
 rustls-native-certs = { git = "https://github.com/djc/rustls-native-certs", rev = "6116ef59f5825b0ec74a38807635a70433d68c27", optional = true }
 rustls-pemfile = { version = "0.2.1", optional = true }
 sct = "0.7"
